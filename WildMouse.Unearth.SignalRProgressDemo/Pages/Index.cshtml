@@ -5,9 +5,11 @@
         <div class="row vertical-align" style="padding-top: 20px">
             <div class="col-lg-2 col-sm-4">
                 <form method="POST">
+                    <input id="connectionId" type="hidden" asp-for="ConnectionId" />
                     <button id="progressButton" class="btn btn-primary"
                             data-loading-text="<i class='fa fa-spinner fa-spin'></i>&nbsp;Working..."
                             data-animation="true"
+                            onclick="getconnectionid();"
                             type="submit">
                         Progress
                     </button>
@@ -29,8 +31,9 @@
 
     @section scripts {
         <script>
+            var connection;
             $('document').ready(function () {
-                let connection = new signalR.HubConnection('/prog');
+                connection = new signalR.HubConnection('/prog');
                 connection.on('ReportProgress', info => {
                     console.log(info.message + ' - ' + info.pct + '%');
                     $('#pbar').css('width', info.pct + '%')
@@ -38,6 +41,10 @@
                     $('#progressButton').button('loading');
                 });
                 connection.start();
+                    //.done(function () { console.log('Now connected, connection ID=' + connection.id); });
             });
+            function getconnectionid() {
+                $('#connectionId').val(connection.connection.connectionId);
+            } 
         </script>
     }

@@ -17,6 +17,9 @@ namespace WildMouse.Unearth.SignalRProgressDemo.Pages
             _progressHubContext = progressHubContext;
         }
 
+        [BindProperty]
+        public string ConnectionId { get; set; }
+
         public string Message { get; set; }
 
         public void OnGet()
@@ -26,24 +29,24 @@ namespace WildMouse.Unearth.SignalRProgressDemo.Pages
 
         public void OnPost()
         {
-            ReportAndSleep("Starting Out", 10);
-            ReportAndSleep("Getting Along", 20);
-            ReportAndSleep("Getting Along Nicely", 30);
-            ReportAndSleep("Just Cruising", 40);
-            ReportAndSleep("Half Way!", 50);
-            ReportAndSleep("The Hump", 60);
-            ReportAndSleep("Working Away", 70);
-            ReportAndSleep("Entering The Home Stretch", 80);
-            ReportAndSleep("Almost Done", 90);
-            ReportAndSleep("All Done Now", 100);
+            ReportAndSleep("Starting Out", 10, ConnectionId);
+            ReportAndSleep("Getting Along", 20, ConnectionId);
+            ReportAndSleep("Getting Along Nicely", 30, ConnectionId);
+            ReportAndSleep("Just Cruising", 40, ConnectionId);
+            ReportAndSleep("Half Way!", 50, ConnectionId);
+            ReportAndSleep("The Hump", 60, ConnectionId);
+            ReportAndSleep("Working Away", 70, ConnectionId);
+            ReportAndSleep("Entering The Home Stretch", 80, ConnectionId);
+            ReportAndSleep("Almost Done", 90, ConnectionId);
+            ReportAndSleep("All Done Now", 100, ConnectionId);
 
             Message = "Click the About menu item for an explanation and source code link";
         }
 
-        private void ReportAndSleep(string message, int pct)
+        private void ReportAndSleep(string message, int pct, string connectionId)
         {
             var info = new ProgressInfo() { message = message, pct = pct };
-            _progressHubContext.Clients.All.ReportProgress(info);
+            _progressHubContext.Clients.Client(connectionId).ReportProgress(info);
             Thread.Sleep(1000);
         }
     }
