@@ -1,0 +1,65 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.css" />
+    <link rel="stylesheet" href="~/lib/font-awesome/css/font-awesome.css" />
+    <link rel="stylesheet" href="~/lib/jquery-ui/themes/smoothness/jquery-ui.css" />
+    <link rel="stylesheet" href="~/css/site.css" />
+
+</head>
+<body>
+    <nav class="navbar navbar-default navbar-fixed-top">
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a asp-page="/Index" class="navbar-brand topnav" style="padding-top: 5px; margin-top: 0px"><img src="~/images/SignalRLogo300x119.png" height="50" /></a>
+                <a asp-page="/Index" class="navbar-brand topnav" style="padding-top: 20px;"><span class="lead">&nbsp;<b>Progress Bar Demo</b></span></a>
+            </div>
+            <div class="navbar-collapse collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a asp-page="/Index" class="navbar-brand" style="padding-top: 20px;">
+                            <i class="fa fa-lg fa-home text-primary"></i><small>&nbsp;Home</small>
+                        </a>
+                    </li>
+                    <li>
+                        <a asp-page="About" class="navbar-brand" style="padding-top: 20px;">
+                            <i class="fa fa-lg fa-question-circle fa-fw text-primary"></i><small>&nbsp;About</small>
+                        </a>
+                    </li>
+                    <li>
+                        <a target="_blank" href="http://unearth.ai" class="navbar-brand" style="padding-top: 10px;">
+                            <span><img src="~/images/unearthlogoblue300x200.png" height="40" /></span>
+                        </a>
+                    </li>
+                    <li>
+                        <a target="_blank" href="http://wildmouse.com"><img src="~/images/WM-logo-300x85T.png" height="30" /></a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container body-content">
+        @RenderBody()
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.js"></script>
+    <script src="~/lib/jquery-ui/jquery-ui.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.js"></script>
+    <script src="~/js/signalr-client-1.0.0-alpha2-final.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @RenderSection("Scripts", required: false)
+
+</body>
+</html>
