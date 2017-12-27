@@ -5,7 +5,7 @@
     <div class="row vertical-align" style="padding-top: 60px">
 
         <div class="col-lg-2 col-md-2 col-sm-2">
-            <form method="POST">
+            <form asp-page-handler="OnPost" data-ajax="true" data-ajax-method="POST">
                 <input id="connectionId" type="hidden" asp-for="ConnectionId" />
                 <button id="progressButton" class="btn btn-primary"
                         data-loading-text="<i class='fa fa-spinner fa-spin'></i>&nbsp;Working..."
@@ -41,9 +41,16 @@
             connection = new signalR.HubConnection('/prog');
             connection.on('reportprogress', info => {
                 console.log(info.message + ' - ' + info.pct + '%');
-                $('#pbar').css('width', info.pct + '%')
-                    .attr('aria-valuenow', info.pct).text(info.message);
-                $('#progressButton').button('loading');
+                if (info.pct < 1 || info.message == 'Reset') {
+                    $('#pbar').css('width', '0%')
+                        .attr('aria-valuenow', 0).text('');
+                    $('#progressButton').button('reset');
+                }
+                else {
+                    $('#pbar').css('width', info.pct + '%')
+                        .attr('aria-valuenow', info.pct).text(info.message);
+                    $('#progressButton').button('loading');
+                }
             });
             connection.start();
         });

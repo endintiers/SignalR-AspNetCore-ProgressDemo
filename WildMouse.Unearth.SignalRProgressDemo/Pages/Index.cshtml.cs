@@ -20,31 +20,32 @@ namespace WildMouse.Unearth.SignalRProgressDemo.Pages
 
         public void OnGet()
         {
-            Message = "Click the Progress button to see some async progress reporting";
+            Message = "Click the Progress button to see some async progress reporting, click the About menu item for an explanation and source code link";
         }
 
         public void OnPost()
         {
             // 10% report is done in js code...
             Thread.Sleep(1000);
-            ReportAndSleep("Getting Along", 20, ConnectionId);
-            ReportAndSleep("Getting Along Nicely", 30, ConnectionId);
-            ReportAndSleep("Just Cruising", 40, ConnectionId);
-            ReportAndSleep("Half Way!", 50, ConnectionId);
-            ReportAndSleep("The Hump", 60, ConnectionId);
-            ReportAndSleep("Working Away", 70, ConnectionId);
-            ReportAndSleep("Entering The Home Stretch", 80, ConnectionId);
-            ReportAndSleep("Almost Done", 90, ConnectionId);
-            ReportAndSleep("All Done Now", 100, ConnectionId);
+            ReportAndSleep("Getting Along", 20, ConnectionId, 1000);
+            ReportAndSleep("Getting Along Nicely", 30, ConnectionId, 1000);
+            ReportAndSleep("Just Cruising", 40, ConnectionId, 1000);
+            ReportAndSleep("Half Way!", 50, ConnectionId, 1000);
+            ReportAndSleep("The Hump", 60, ConnectionId, 1000);
+            ReportAndSleep("Working Away", 70, ConnectionId, 1000);
+            ReportAndSleep("Entering The Home Stretch", 80, ConnectionId, 1000);
+            ReportAndSleep("Almost Done", 90, ConnectionId, 1000);
+            ReportAndSleep("All Done Now", 100, ConnectionId, 1000);
 
-            Message = "Click the About menu item for an explanation and source code link";
+            // Tell the Unobtrusively Async JS code to reset
+            ReportAndSleep("Reset", 0, ConnectionId, 0);
         }
 
-        private void ReportAndSleep(string message, int pct, string connectionId)
+        private void ReportAndSleep(string message, int pct, string connectionId, int sleepFor)
         {
             var info = new ProgressInfo() { message = message, pct = pct };
             _progressHubContext.Clients.Client(connectionId).ReportProgress(info);
-            Thread.Sleep(1000);
+            Thread.Sleep(sleepFor);
         }
     }
 }
