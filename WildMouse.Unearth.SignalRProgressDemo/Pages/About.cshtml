@@ -1,6 +1,8 @@
 ﻿@page
 @model AboutModel
-
+@{
+    ViewData["Title"] = "About SignalR Progress";
+}
 <div class="container">
     <div class="row" style="padding-top: 50px">
         <div class="col-lg-7 col-sm-6">
@@ -102,7 +104,7 @@ public void Configure(IApplicationBuilder app, IHostingEnvironment env)
 
             <h3>In the Page code-behind</h3>
             <p>
-                We are allowed to call it code-behind aren't we? 
+                We are allowed to call it code-behind aren't we?
             </p>
             <p>
                 The Page Model's constructor takes an IHubContext. AspNetCore2 injects a reference to the
@@ -113,7 +115,7 @@ public void Configure(IApplicationBuilder app, IHostingEnvironment env)
                 Now we can do lots of different work while reporting to the client what we are doing and
                 how it's going. Here I am just updating a ProgressBar, in my actual app (<b>Unearth</b>)
                 I do all kinds of things like parsing and analysing natural language, executing several
-                searches on different repositories and passing the results back to the client as I go. 
+                searches on different repositories and passing the results back to the client as I go.
             </p>
             <p>
                 This is all done with <i>_progressHubContext.Clients.Client(connectionId).ReportProgress(info);</i>
