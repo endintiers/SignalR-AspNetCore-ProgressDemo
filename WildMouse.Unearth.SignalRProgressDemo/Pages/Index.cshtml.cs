@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.SignalR;
+using System.Threading;
 
 namespace WildMouse.Unearth.SignalRProgressDemo.Pages
 {
@@ -29,7 +25,8 @@ namespace WildMouse.Unearth.SignalRProgressDemo.Pages
 
         public void OnPost()
         {
-            ReportAndSleep("Starting Out", 10, ConnectionId);
+            // 10% report is done in js code...
+            Thread.Sleep(1000);
             ReportAndSleep("Getting Along", 20, ConnectionId);
             ReportAndSleep("Getting Along Nicely", 30, ConnectionId);
             ReportAndSleep("Just Cruising", 40, ConnectionId);

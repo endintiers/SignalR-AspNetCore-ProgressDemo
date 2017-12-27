@@ -10,7 +10,7 @@ namespace WildMouse.Unearth.SignalRProgressDemo
     {
         public Task ReportProgress(ProgressInfo info)
         {
-            return Clients.All.ReportProgress(info);
+            return Clients.Client(this.Context.ConnectionId).ReportProgress(info);
         }
     }
 }

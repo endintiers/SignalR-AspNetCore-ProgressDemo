@@ -1,50 +1,57 @@
 ﻿@page
 @model IndexModel
 
-    <div class="container">
-        <div class="row vertical-align" style="padding-top: 60px">
-            <div class="col-lg-2 col-sm-4">
-                <form method="POST">
-                    <input id="connectionId" type="hidden" asp-for="ConnectionId" />
-                    <button id="progressButton" class="btn btn-primary"
-                            data-loading-text="<i class='fa fa-spinner fa-spin'></i>&nbsp;Working..."
-                            data-animation="true"
-                            onclick="getconnectionid();"
-                            type="submit">
-                        Progress
-                    </button>
-                </form>
-            </div>
-            <div class="col-lg-10 col-sm-8" style="height:20px">
-                <div id="pbar" class="progress progress-bar" role="progressbar" aria-valuenow="0"
-                     aria-valuemin="0" aria-valuemax="100" style="height:20px">
-                </div>
-            </div>
+<div class="container">
+    <div class="row vertical-align" style="padding-top: 60px">
 
+        <div class="col-lg-2 col-md-2 col-sm-2">
+            <form method="POST">
+                <input id="connectionId" type="hidden" asp-for="ConnectionId" />
+                <button id="progressButton" class="btn btn-primary"
+                        data-loading-text="<i class='fa fa-spinner fa-spin'></i>&nbsp;Working..."
+                        onclick="getconnectionidandstartprogress();"
+                        type="submit">
+                    Progress
+                </button>
+            </form>
         </div>
-        <div id="msg-row" class="row" style="padding-top: 8px">
-            <div class="col-lg-12 col-sm-12">
-                <span id="msg" class="text-success">@Model.Message</span>
+
+        <div class="col-lg-10 col-md-10 col-sm-10" style="height:20px">
+            <div id="pbar" class="progress progress-bar" role="progressbar" aria-valuenow="0"
+                 aria-valuemin="0" aria-valuemax="100">
             </div>
+        </div>
+
+    </div>
+
+    <div id="msg-row" class="row" style="padding-top: 8px">
+        <div class="col-lg-12 col-sm-12">
+            <span id="msg" class="text-success">@Model.Message</span>
         </div>
     </div>
 
-    @section scripts {
-        <script>
-            var connection;
-            $('document').ready(function () {
-                connection = new signalR.HubConnection('/prog');
-                connection.on('ReportProgress', info => {
-                    console.log(info.message + ' - ' + info.pct + '%');
-                    $('#pbar').css('width', info.pct + '%')
-                        .attr('aria-valuenow', info.pct).text(info.message);
-                    $('#progressButton').button('loading');
-                });
-                connection.start();
-                    //.done(function () { console.log('Now connected, connection ID=' + connection.id); });
+</div>
+
+@section scripts {
+    <script src="~/js/signalr-client-1.0.0-alpha2-final.min.js"></script>
+    <script>
+        var connection;
+
+        $('document').ready(function () {
+            connection = new signalR.HubConnection('/prog');
+            connection.on('reportprogress', info => {
+                console.log(info.message + ' - ' + info.pct + '%');
+                $('#pbar').css('width', info.pct + '%')
+                    .attr('aria-valuenow', info.pct).text(info.message);
+                $('#progressButton').button('loading');
             });
-            function getconnectionid() {
-                $('#connectionId').val(connection.connection.connectionId);
-            } 
-        </script>
-    }
+            connection.start();
+        });
+
+        function getconnectionidandstartprogress() {
+            $('#connectionId').val(connection.connection.connectionId);
+            var info = { message: 'Starting Out', pct: 10 };
+            connection.invoke('reportprogress', info);
+        }
+    </script>
+}

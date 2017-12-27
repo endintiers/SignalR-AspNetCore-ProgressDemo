@@ -1,8 +1,162 @@
 ﻿@page
 @model AboutModel
 
-<h2>About SignalR Progress Demo</h2>
+<div class="container">
+    <div class="row" style="padding-top: 50px">
+        <div class="col-lg-7 col-sm-6">
+            <div class="clearfix"></div>
+            <h2>About SignalR Progress Demo</h2>
+            <p>
+                A simple ASP.NET Core2 app that uses SignalR to send progress messages from server-side code to an HTML page.
+                Source code in github: <a href="https://github.com/endintiers/SignalR-AspNetCore-ProgressDemo">SignalR-AspNetCore-ProgressDemo</a>
+                you can register feedback/comments there.
+            </p>
 
-<p>Source code in github: <a href="https://github.com/endintiers/SignalR-AspNetCore-ProgressDemo">SignalR-AspNetCore-ProgressDemo</a></p>
+            <h3>The Hub</h3>
+            <p>
+                All under the SignalR folder in the solution. You can make ProgressInfo as complex as you like
+                (as long as it's serializable). The Interface allows for injection later, the actual Hub ReportProgress
+                method is only intended to be called from the client (browser) - it can only send to it's caller!
+                (this.Context.ConnectionId).
+            </p>
+            <pre class="prettyprint">
+public class ProgressInfo
+{
+    public string message { get; set; }
+    public int pct { get; set; }
+}
 
-<p>I'll put some actual doc of the code here when I've had a wee sleep :-)</p>
+public interface IProgressHub
+{
+    Task ReportProgress(ProgressInfo info);
+}
+
+public class ProgressHub : Hub<IProgressHub>
+{
+    public Task ReportProgress(ProgressInfo info)
+    {
+        return Clients.Client(this.Context.ConnectionId).ReportProgress(info);
+    }
+}</pre>
+            <h3>At Startup</h3>
+            <p>
+                In Startup.cs. Wire up and start the ProgressHub.
+            </p>
+            <pre class="prettyprint">
+public void ConfigureServices(IServiceCollection services)
+{
+    ...
+    services.AddSignalR();
+}
+
+public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+{
+    ...
+    app.UseSignalR(routes =>
+    {
+        routes.MapHub&lt;ProgressHub&gt;("prog");
+    });
+}</pre>
+
+            <h3>In the page</h3>
+            <p>
+                In the scripts section of Pages/Index.cshtml. SignalR is only used on this page so it is
+                referenced here. We are using Postback and ASP.NET Page binding so the document ready
+                function is called on Get and after the (long running) sync Post operation completes.
+                If using async Post it would still work with maybe a clean-up on gt 99% complete.
+            </p>
+            <p>
+                <b>connection</b> is global. It has an Id property, but after connection.Start() this always
+                seems to be 0. We need the connection id so the server knows who to inform about the
+                progress of the long-running operation. This is achieved by using Razor Page Model
+                Binding with a value extracted from connection.connection.connectionId
+                (hubConnection.httpConnection.connectionId)
+            </p>
+            <p>
+                At the same time, in the getconnectionidandstartprogress() method, we call the
+                ReportProgress method on the server-side hub to set '10% complete'. This is actually
+                the only time that ReportProgress method is executed (as a result of this call from the client).
+            </p>
+            <pre class="prettyprint">
+&lt;script src="~/js/signalr-client-1.0.0-alpha2-final.min.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+    var connection;
+
+    $('document').ready(function () {
+        connection = new signalR.HubConnection('/prog');
+        connection.on('reportprogress', info =&gt; {
+            console.log(info.message + ' - ' + info.pct + '%');
+            $('#pbar').css('width', info.pct + '%')
+                .attr('aria-valuenow', info.pct).text(info.message);
+            $('#progressButton').button('loading');
+        });
+        connection.start();
+    });
+
+    function getconnectionidandstartprogress() {
+        $('#connectionId').val(connection.connection.connectionId);
+        var info = { message: 'Starting Out', pct: 10 };
+        connection.invoke('reportprogress', info);
+    }
+&lt;/script&gt;</pre>
+
+            <h3>In the Page code-behind</h3>
+            <p>
+                We are allowed to call it code-behind aren't we? 
+            </p>
+            <p>
+                The Page Model's constructor takes an IHubContext. AspNetCore2 injects a reference to the
+                ProgressHub instance for us. Now we can make calls to the hub from here! On Post the
+                ConnectionId of the caller is bound from a hidden input on the page, so we are all ready to go.
+            </p>
+            <p>
+                Now we can do lots of different work while reporting to the client what we are doing and
+                how it's going. Here I am just updating a ProgressBar, in my actual app (<b>Unearth</b>)
+                I do all kinds of things like parsing and analysing natural language, executing several
+                searches on different repositories and passing the results back to the client as I go. 
+            </p>
+            <p>
+                This is all done with <i>_progressHubContext.Clients.Client(connectionId).ReportProgress(info);</i>
+                This uses the hub, but doesn't actually execute the Hub's ReportProgress method.
+            </p>
+            <pre class="prettyprint">
+public class IndexModel : PageModel
+{
+    IHubContext&lt;ProgressHub, IProgressHub&gt; _progressHubContext;
+    public IndexModel(IHubContext&lt;ProgressHub, IProgressHub&gt; progressHubContext)
+    {
+        _progressHubContext = progressHubContext;
+    }
+
+    [BindProperty]
+    public string ConnectionId { get; set; }
+
+    ...
+
+    public void OnPost()
+    {
+        // 10% report is done in js code...
+        Thread.Sleep(1000);
+        ReportAndSleep("Getting Along", 20, ConnectionId);
+        ...
+    }
+
+    private void ReportAndSleep(string message, int pct, string connectionId)
+    {
+        var info = new ProgressInfo() { message = message, pct = pct };
+        _progressHubContext.Clients.Client(connectionId).ReportProgress(info);
+        Thread.Sleep(1000);
+    }
+}</pre>
+        </div>
+
+        <div class="col-lg-4 col-lg-offset-1 col-sm-6">
+            <div class="col-xs-12" style="height:50px;"></div>
+            <img class="img-responsive" src="~/images/signals.jpg" alt="">
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="https://cdn.rawgit.com/google/code-prettify/master/loader/run_prettify.js"></script>
+}

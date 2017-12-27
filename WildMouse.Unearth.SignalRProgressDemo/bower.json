@@ -4,7 +4,6 @@
   "dependencies": {
     "bootstrap": "v3.3.7",
     "font-awesome": "Font-Awesome#v4.7.0",
-    "jQuery": "3.2.1",
-    "jquery-ui": "1.12.1"
+    "jQuery": "3.2.1"
   }
 }
