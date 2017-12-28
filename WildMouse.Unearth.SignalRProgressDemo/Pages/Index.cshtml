@@ -11,7 +11,7 @@
                 <input id="connectionId" type="hidden" asp-for="ConnectionId" />
                 <button id="progressButton" class="btn btn-primary"
                         data-loading-text="<i class='fa fa-spinner fa-spin'></i>&nbsp;Working..."
-                        onclick="getconnectionidandstartprogress();"
+                        onclick="getConnectionIdAndReportStart();"
                         type="submit">
                     Progress
                 </button>
@@ -35,7 +35,6 @@
 </div>
 
 @section scripts {
-    <script src="~/js/signalr-client-1.0.0-alpha2-final.min.js"></script>
     <script>
         var connection;
 
@@ -43,21 +42,25 @@
             connection = new signalR.HubConnection('/prog');
             connection.on('reportprogress', info => {
                 console.log(info.message + ' - ' + info.pct + '%');
-                if (info.pct < 1 || info.message == 'Reset') {
-                    $('#pbar').css('width', '0%')
-                        .attr('aria-valuenow', 0).text('');
-                    $('#progressButton').button('reset');
-                }
-                else {
-                    $('#pbar').css('width', info.pct + '%')
-                        .attr('aria-valuenow', info.pct).text(info.message);
-                    $('#progressButton').button('loading');
-                }
+                reportProgress(info);
             });
             connection.start();
         });
 
-        function getconnectionidandstartprogress() {
+        function reportProgress(info) {
+            if (info.pct < 1 || info.message.toLowerCase() == 'reset') {
+                $('#pbar').css('width', '0%')
+                    .attr('aria-valuenow', 0).text('');
+                $('#progressButton').button('reset');
+            }
+            else {
+                $('#pbar').css('width', info.pct + '%')
+                    .attr('aria-valuenow', info.pct).text(info.message);
+                $('#progressButton').button('loading');
+            }
+        }
+
+        function getConnectionIdAndReportStart() {
             $('#connectionId').val(connection.connection.connectionId);
             var info = { message: 'Starting Out', pct: 10 };
             connection.invoke('reportprogress', info);

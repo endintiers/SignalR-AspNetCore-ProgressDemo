@@ -27,15 +27,15 @@ namespace WildMouse.Unearth.SignalRProgressDemo.Pages
         {
             // 10% report is done in js code...
             Thread.Sleep(1000);
-            ReportAndSleep("Getting Along", 20, ConnectionId, 1000);
-            ReportAndSleep("Getting Along Nicely", 30, ConnectionId, 1000);
-            ReportAndSleep("Just Cruising", 40, ConnectionId, 1000);
-            ReportAndSleep("Half Way!", 50, ConnectionId, 1000);
-            ReportAndSleep("The Hump", 60, ConnectionId, 1000);
-            ReportAndSleep("Working Away", 70, ConnectionId, 1000);
-            ReportAndSleep("Entering The Home Stretch", 80, ConnectionId, 1000);
-            ReportAndSleep("Almost Done", 90, ConnectionId, 1000);
-            ReportAndSleep("All Done Now", 100, ConnectionId, 1000);
+            ReportAndSleep("Relaxing Splines", 20, ConnectionId, 1000);
+            ReportAndSleep("Graphing Whale Migration", 30, ConnectionId, 1000);
+            ReportAndSleep("Obfuscating Quigley Matrix", 40, ConnectionId, 1000);
+            ReportAndSleep("Realigning Alternate Time Frames", 50, ConnectionId, 1000);
+            ReportAndSleep("Calculating Inverse Probability Matrices", 60, ConnectionId, 1000);
+            ReportAndSleep("Routing Neural Network Infrastructure", 70, ConnectionId, 1000);
+            ReportAndSleep("Calculating Llama Expectoration Trajectory", 80, ConnectionId, 1000);
+            ReportAndSleep("Resolving GUID Conflict", 90, ConnectionId, 1000);
+            ReportAndSleep("One Hundred Percent Finished", 100, ConnectionId, 1000);
 
             // Tell the Unobtrusively Async JS code to reset
             ReportAndSleep("Reset", 0, ConnectionId, 0);
