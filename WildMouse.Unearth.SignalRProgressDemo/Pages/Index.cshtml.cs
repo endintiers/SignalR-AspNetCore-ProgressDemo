@@ -27,7 +27,7 @@ namespace WildMouse.Unearth.SignalRProgressDemo.Pages
         {
             // 10% report is done in js code...
             Thread.Sleep(1000);
-            ReportAndSleep("Relaxing Splines", 20, ConnectionId, 1000);
+            ReportAndSleep("Reticulating Splines", 20, ConnectionId, 1000);
             ReportAndSleep("Graphing Whale Migration", 30, ConnectionId, 1000);
             ReportAndSleep("Obfuscating Quigley Matrix", 40, ConnectionId, 1000);
             ReportAndSleep("Realigning Alternate Time Frames", 50, ConnectionId, 1000);
