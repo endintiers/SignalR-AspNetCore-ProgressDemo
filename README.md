@@ -24,7 +24,7 @@ public interface IProgressHub
     Task ReportProgress(ProgressInfo info);
 }
 
-public class ProgressHub : Hub
+public class ProgressHub : Hub<IProgressHub>
 {
     public Task ReportProgress(ProgressInfo info)
     {
