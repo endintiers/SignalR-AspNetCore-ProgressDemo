@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.SignalR;
 using System.Threading;
+using WildMouse.Unearth.SignalRProgressDemo.SignalR;
 
 namespace WildMouse.Unearth.SignalRProgressDemo.Pages
 {

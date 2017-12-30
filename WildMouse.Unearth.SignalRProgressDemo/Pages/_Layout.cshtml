@@ -23,13 +23,18 @@
                     <span class="icon-bar"></span>
                 </button>
                 <a asp-page="/Index" class="navbar-brand topnav" style="padding-top: 5px; margin-top: 0px"><img src="~/images/SignalRLogo300x119.png" height="50" /></a>
-                <a asp-page="/Index" class="navbar-brand topnav" style="padding-top: 20px;"><span class="lead">&nbsp;<b>Progress Bar Demo</b></span></a>
+                <a asp-page="/Index" class="navbar-brand topnav" style="padding-top: 20px;"><span class="lead">&nbsp;<b>@ViewData["Title"]</b></span></a>
             </div>
             <div class="navbar-collapse collapse">
                 <ul class="nav navbar-nav navbar-right">
                     <li>
                         <a asp-page="/Index" class="navbar-brand" style="padding-top: 20px;">
                             <i class="fa fa-lg fa-home text-primary"></i><small>&nbsp;Home</small>
+                        </a>
+                    </li>
+                    <li>
+                        <a asp-page="/NoPost" class="navbar-brand" style="padding-top: 20px;">
+                            <i class="fa fa-lg fa-play-circle text-primary"></i><small>&nbsp;No Post</small>
                         </a>
                     </li>
                     <li>

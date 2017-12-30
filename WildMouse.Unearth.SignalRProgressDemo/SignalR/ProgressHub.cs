@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace WildMouse.Unearth.SignalRProgressDemo
+namespace WildMouse.Unearth.SignalRProgressDemo.SignalR
 {
     public class ProgressHub : Hub<IProgressHub>
     {

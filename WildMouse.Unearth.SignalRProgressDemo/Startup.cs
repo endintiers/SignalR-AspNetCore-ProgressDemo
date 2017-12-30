@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using WildMouse.Unearth.SignalRProgressDemo.SignalR;
 
 namespace WildMouse.Unearth.SignalRProgressDemo
 {
@@ -50,6 +51,7 @@ namespace WildMouse.Unearth.SignalRProgressDemo
 
             app.UseSignalR(routes =>
             {
+                routes.MapHub<NoPostHub>("nopo");
                 routes.MapHub<ProgressHub>("prog");
             });
         }
