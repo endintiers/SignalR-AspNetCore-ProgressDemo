@@ -1,10 +1,10 @@
 ## Async POST pattern walk-through
 
-This sample code shows two alternate patterns for server->browser page reporting using SignalR core.
+This [sample code](https://github.com/endintiers/SignalR-AspNetCore-ProgressDemo) shows two alternate patterns for server->browser async reporting of long-running task results using SignalR core.
 
 This walk-through shows how the Async POST pattern (index.cshtml and friends) works in an ASP.NET core2 Razor Page.
 
-For a walk-through of the No POST pattern see:            
+There is a separate [walk-through of the No POST pattern](https://github.com/endintiers/SignalR-AspNetCore-ProgressDemo/blob/master/NoPOST.md) which is more complex/real.          
 
 ### The Hub
 

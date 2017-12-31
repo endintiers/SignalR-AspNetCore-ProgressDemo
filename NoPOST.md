@@ -2,45 +2,46 @@
 
 This [sample code](https://github.com/endintiers/SignalR-AspNetCore-ProgressDemo) shows two alternate patterns for server->browser async reporting of long-running task results using SignalR core.
 
-This walk-through shows how the No POST pattern (nopost.cshtml and friends) works in an ASP.NET core2 Razor Page.
+This walk-through shows how the No POST pattern (nopost.cshtml and friends) works in an ASP.NET core2 Razor Page. This sample is worked-up somewhat - a little more complex and 'real' with multiple message types.
 
-There is a separate [walk-through of the Async POST pattern](https://github.com/endintiers/SignalR-AspNetCore-ProgressDemo/blob/master/AsyncPOST.md).      
+There is a separate [walk-through of the Async POST pattern](https://github.com/endintiers/SignalR-AspNetCore-ProgressDemo/blob/master/AsyncPOST.md) (simplified: a better place to start).    
 
 ### The Hub
 
-All code in different files under the SignalR folder in the solution (combined here for clarity). You can make ProgressInfo (the message definition) as complex as you like (as long as it's serializable). The INoPostHub Interface allows for injection later (in Page Model construction).
+All code in different files under the SignalR folder in the solution (combined here for clarity).  The Interface(s) define what messages can be sent, only messages *sent by the client*s need to be implemented in the hub. As you can see the only implementation here is of StartLongRunningProcessAsync.
 
 ```c#
-public class ProgressInfo
-{
-    public string message { get; set; }
-    public int pct { get; set; }
-}
-
-public interface IProgressHub
-{
-    Task ReportProgress(ProgressInfo info);
-}
-
-public interface INoPostHub : IProgressHub
-{
-	Task StartLongRunningProcessAsync();
-}
-
-public class NoPostHub : Hub<INoPostHub>
-{
-	public async Task StartLongRunningProcessAsync()
+    public class ProgressInfo
     {
-    	await ProgressHelper.SomeLongRunningTask(this);
+        public string message { get; set; }
+        public int pct { get; set; }
     }
 
-    // This is only called if a CLIENT invokes reportprogress
-    // (so never in the NoPost.cshtml example)
-    public Task ReportProgress(ProgressInfo info)
+    public class LongRunningTaskParameters
     {
-    	return Clients.Client(this.Context.ConnectionId).ReportProgress(info);
+        public bool ThrowEx { get; set; }
+        public string SomeOtherStuff { get; set; }
     }
-}
+
+    public interface IProgressHub
+    {
+        Task ReportProgress(ProgressInfo info);
+    }
+
+    public interface INoPostHub : IProgressHub
+    {
+        Task StartLongRunningProcessAsync(bool throwEx);
+        Task ProcessCompleted(ProgressInfo info);
+        Task SomethingWentWrong(string message);
+    }
+
+    public class NoPostHub : Hub<INoPostHub>
+    {
+        public async Task StartLongRunningProcessAsync(LongRunningTaskParameters parms)
+        {
+            await ProgressHelper.SomeLongRunningTask(this, parms);
+        }
+    }
 ```
 
 ### At Startup
@@ -67,9 +68,9 @@ public void Configure(IApplicationBuilder app, IHostingEnvironment env)
 
 ### In the page
 
-The **connection** variable is global - this reference is used later to retrieve the connection id.      
+The **connection** variable is global - this reference is used later to start the long running process on the server.      
 
-On document ready (called only once - after the initial GET) a connection to the SignalR hub is created, and a function is defined to handle reportprogress messages. The connection is then started and the page displayed.
+On document ready (called only once - after the initial GET) a connection to the SignalR hub is created, and a functions are defined to handle reportprogress, processcompleted and somethingwentwrong messages. The connection is then started and the page displayed.
 
 ```html
 (in _Layout.cshtml)
@@ -79,29 +80,38 @@ On document ready (called only once - after the initial GET) a connection to the
 ```javascript
 (scripts section of NoPost.cshtml)
         var connection;
-        var progressTimeout;
 
         $('document').ready(function () {
             connection = new signalR.HubConnection('/nopo');
             connection.on('reportprogress', info => {
                 console.log(info.message + ' - ' + info.pct + '%');
-                reportProgress(info);
+                $('#pbar').css('width', info.pct + '%')
+                    .attr('aria-valuenow', info.pct).text(info.message);
+            });
+            connection.on('processcompleted', info => {
+                console.log('Process Completed - ' + info.message);
+                $('#msg').html('Process Completed - ' + info.message);
+                resetUI();
+            });
+            connection.on('somethingwentwrong', message => {
+                console.log(message);
+                $('#msg').html('<span class="text-danger">' + message + '</span>');
+                resetUI();
             });
             connection.start();
         });
 ```
 
-When the Progress button is clicked, it calls the startLongRunningProcess function which sets the state of the Progress to loading (so it can't be clicked again) then calls the server's ProgressHelper.SomeLongRunningTask method via the hub. We don't have to retrieve or pass the connection Id because the hub already knows which client is making this call.
+When the Progress button is clicked, it calls the **startLongRunningProcess** function which sets the state of the Progress to loading (so it can't be clicked again) then calls the server's ProgressHelper.SomeLongRunningTask method via the hub passing in any parameters we need. We don't have to retrieve or pass the connection Id because the hub already knows which client is making this call. 
 
-The **progressTimeout** is a simplified/arbitrary way of dealing with server-side issues. In a real app we would catch server-side exceptions and report problems back to the client via reportprogress or some other message.
-
-**resetUI** just resets the UI state - after a timeout or when a reset message is received from the server.
+**resetUI** just resets the UI state - called after a processcompleted or somethingwentwrong message is received from the server.
 
 ```javascript
         function startLongRunningProcess() {
             $('#progressButton').button('loading');
-            progressTimeout = setTimeout(resetUI, 30000);
-            connection.invoke('startlongrunningprocessasync');
+            $('#msg').html('');
+            var throwEx = $('#throwExCheckBox').prop('checked');
+            connection.invoke('startlongrunningprocessasync', { ThrowEx: throwEx, SomeOtherStuff: "blah"} );
         }
 
         function resetUI() {
@@ -110,22 +120,7 @@ The **progressTimeout** is a simplified/arbitrary way of dealing with server-sid
         }
 ```
 
-Whenever the long running task on the server wishes to report back to the client, it calls reportprogress on the hub, which sends a progressinfo message to the client which is passed to the reportProgress function.
-
- If a reset message is passed by the server the UI is reset and the progress timeout is cleared.      
-
-```javascript
-        function reportProgress(info) {
-            if (info.message.toLowerCase() == 'reset') {
-                clearTimeout(progressTimeout);
-                resetUI();
-            }
-            else {
-                $('#pbar').css('width', info.pct + '%')
-                    .attr('aria-valuenow', info.pct).text(info.message);
-            }
-        }
-```
+Whenever the long running task on the server wishes to report back to the client, it calls reportprogress on the hub, which sends a progressinfo message to the client which is displayed in the progress bar.
 
 ### In the Page code-behind
 
@@ -146,38 +141,51 @@ Nothing to see here. No binding. No POST. Only a GET.
 
 ### In the Hub and Helper
 
-When the hub's StartLongRunningProcessAsync method is called (because of the message from the client) it calls a helper method passing the a hub reference that contains the context of this call.
+When the hub's **StartLongRunningProcessAsync** method is called (because of the message from the client) it calls a helper method passing the a hub reference that contains the context of this call and whatever parameters are defined.
 
 ```c#
 (NoPostHub.cs)
-	public async Task StartLongRunningProcessAsync()
+    public async Task StartLongRunningProcessAsync(LongRunningTaskParameters parms)
     {
-    	await ProgressHelper.SomeLongRunningTask(this);
+      await ProgressHelper.SomeLongRunningTask(this, parms);
     }
 ```
 
-The actual long running task is executed, reporting back the page periodically. When finished it sends a reset message to the client/page.
+The actual long running task is executed, reporting back the page periodically using ReportProgress messages. When finished it sends a ProcessCompleted message to the client/page. If an exception is thrown the message is sent back to the page in a SomethingWentWrong message. Simples :-).
 
 ```C#
 (ProgressHelper.cs)
-    public class ProgressHelper
+  public class ProgressHelper
+  {
+    public static async Task SomeLongRunningTask(NoPostHub noPostHub,
+                                                 LongRunningTaskParameters parms)
     {
-        public static async Task SomeLongRunningTask(NoPostHub noPostHub)
-        {
-            ReportAndSleep(noPostHub, "Starting Out", 10, 1000);
-            ...
+      try
+      {
+        ReportAndSleep(noPostHub, "Starting Out", 10, 1000);
+        ...
+        if (parms.ThrowEx) { throw new ApplicationException("Something bad happened"); }
+        ...
+        ReportAndSleep(noPostHub, "One Hundred Percent Finished", 100, 1000);
 
-            // Tell the js code to reset
-            ReportAndSleep(noPostHub, "Reset", 0, 0);
-        }
-
-        private static void ReportAndSleep(NoPostHub noPostHub, string message, int pct, int sleepFor)
-        {
-            var info = new ProgressInfo() { message = message, pct = pct };
-            noPostHub.Clients.Client(noPostHub.Context.ConnectionId).ReportProgress(info);
-            Thread.Sleep(sleepFor);
-        }
+        // Tell the js code we finished
+        var info = new ProgressInfo() { message = "All messages sent OK", pct = 0 };
+        await noPostHub.Clients.Client(noPostHub.Context.ConnectionId).ProcessCompleted(info);
+      }
+      catch (Exception ex)
+      {
+        await noPostHub.Clients.Client(noPostHub.Context.ConnectionId)
+          .SomethingWentWrong(ex.Message);
+      }
     }
+
+    private static void ReportAndSleep(NoPostHub noPostHub, string message, int pct, int sleepFor)
+    {
+      var info = new ProgressInfo() { message = message, pct = pct };
+      noPostHub.Clients.Client(noPostHub.Context.ConnectionId).ReportProgress(info);
+      Thread.Sleep(sleepFor);
+    }
+  }
+
 ```
 
-In the real world we would define extra message types. The reset should not really be a special case of ReportProgress - it should be a special 
