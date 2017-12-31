@@ -1,16 +1,14 @@
 ## No POST pattern walk-through
 
-This sample code shows two alternate patterns for server->browser page reporting using SignalR core.
+This [sample code](https://github.com/endintiers/SignalR-AspNetCore-ProgressDemo) shows two alternate patterns for server->browser async reporting of long-running task results using SignalR core.
 
 This walk-through shows how the No POST pattern (nopost.cshtml and friends) works in an ASP.NET core2 Razor Page.
 
-For a walk-through of the Async POST pattern see:            
+There is a separate [walk-through of the Async POST pattern](https://github.com/endintiers/SignalR-AspNetCore-ProgressDemo/blob/master/AsyncPOST.md).      
 
 ### The Hub
 
-All code in separate classes under the SignalR folder in the solution. You can make ProgressInfo (the message definition) as complex as you like (as long as it's serializable). The Interface allows for injection later (in Page Model construction).
-
-The actual Hub ReportProgress method is only intended to be called from the client (browser) - it can only send to it's caller (this.Context.ConnectionId).         
+All code in different files under the SignalR folder in the solution (combined here for clarity). You can make ProgressInfo (the message definition) as complex as you like (as long as it's serializable). The INoPostHub Interface allows for injection later (in Page Model construction).
 
 ```c#
 public class ProgressInfo
@@ -24,18 +22,30 @@ public interface IProgressHub
     Task ReportProgress(ProgressInfo info);
 }
 
-public class ProgressHub : Hub<IProgressHub>
+public interface INoPostHub : IProgressHub
 {
+	Task StartLongRunningProcessAsync();
+}
+
+public class NoPostHub : Hub<INoPostHub>
+{
+	public async Task StartLongRunningProcessAsync()
+    {
+    	await ProgressHelper.SomeLongRunningTask(this);
+    }
+
+    // This is only called if a CLIENT invokes reportprogress
+    // (so never in the NoPost.cshtml example)
     public Task ReportProgress(ProgressInfo info)
     {
-        return Clients.Client(this.Context.ConnectionId).ReportProgress(info);
+    	return Clients.Client(this.Context.ConnectionId).ReportProgress(info);
     }
 }
 ```
 
 ### At Startup
 
-In Startup.cs. Wire up and start the ProgressHub.             
+In Startup.cs. Wire up and start the NoPostHub.             
 
 ```c#
 public void ConfigureServices(IServiceCollection services)
@@ -49,27 +59,17 @@ public void Configure(IApplicationBuilder app, IHostingEnvironment env)
     ...
     app.UseSignalR(routes =>
     {
+      routes.MapHub<NoPostHub>("nopo");
       ...
-      routes.MapHub<ProgressHub>("prog");
     });
 }
 ```
 
 ### In the page
 
-Unobtrusive Ajax is used to asynchronously POST the form to the server while still taking advantage of Razor Page routing and binding. Let's just call this 'magic' and move on :-).             
+The **connection** variable is global - this reference is used later to retrieve the connection id.      
 
-```html
-(in _Layout.cshtml)
-<script src="~/js/jquery.unobtrusive-ajax.min.js"></script>
-...
-(in Index.cshtml)
-<form asp-page-handler="OnPost" data-ajax="true" data-ajax-method="POST">
-```
-
-The **connection** variable is global - this reference is used later to retrieve the connection id.             
-
-On document ready (called only once - after the initial GET) a connection to the SignalR hub is created, and a function is defined to handle  reportprogress messages. The connection is then started and the page displayed.
+On document ready (called only once - after the initial GET) a connection to the SignalR hub is created, and a function is defined to handle reportprogress messages. The connection is then started and the page displayed.
 
 ```html
 (in _Layout.cshtml)
@@ -77,11 +77,12 @@ On document ready (called only once - after the initial GET) a connection to the
 ```
 
 ```javascript
-(scripts section of Index.cshtml)
-	var connection;
+(scripts section of NoPost.cshtml)
+        var connection;
+        var progressTimeout;
 
         $('document').ready(function () {
-            connection = new signalR.HubConnection('/prog');
+            connection = new signalR.HubConnection('/nopo');
             connection.on('reportprogress', info => {
                 console.log(info.message + ' - ' + info.pct + '%');
                 reportProgress(info);
@@ -90,81 +91,93 @@ On document ready (called only once - after the initial GET) a connection to the
         });
 ```
 
-Because the form POST is asynchronous we need a way to reset the state of the page once processing is finished. When the server sends a progress report with the message 'Reset' the UI state is re-initialized. Other messages just set the submit button state to loading (over and over...meh) and update the progress bar.             
+When the Progress button is clicked, it calls the startLongRunningProcess function which sets the state of the Progress to loading (so it can't be clicked again) then calls the server's ProgressHelper.SomeLongRunningTask method via the hub. We don't have to retrieve or pass the connection Id because the hub already knows which client is making this call.
+
+The **progressTimeout** is a simplified/arbitrary way of dealing with server-side issues. In a real app we would catch server-side exceptions and report problems back to the client via reportprogress or some other message.
+
+**resetUI** just resets the UI state - after a timeout or when a reset message is received from the server.
+
+```javascript
+        function startLongRunningProcess() {
+            $('#progressButton').button('loading');
+            progressTimeout = setTimeout(resetUI, 30000);
+            connection.invoke('startlongrunningprocessasync');
+        }
+
+        function resetUI() {
+            $('#pbar').css('width', '0%').attr('aria-valuenow', 0).text('');
+            $('#progressButton').button('reset');
+        }
+```
+
+Whenever the long running task on the server wishes to report back to the client, it calls reportprogress on the hub, which sends a progressinfo message to the client which is passed to the reportProgress function.
+
+ If a reset message is passed by the server the UI is reset and the progress timeout is cleared.      
 
 ```javascript
         function reportProgress(info) {
-            if (info.pct < 1 || info.message.toLowerCase() == 'reset') {
-                $('#pbar').css('width', '0%')
-                    .attr('aria-valuenow', 0).text('');
-                $('#progressButton').button('reset');
+            if (info.message.toLowerCase() == 'reset') {
+                clearTimeout(progressTimeout);
+                resetUI();
             }
             else {
                 $('#pbar').css('width', info.pct + '%')
                     .attr('aria-valuenow', info.pct).text(info.message);
-                $('#progressButton').button('loading');
             }
-        }
-```
-
-On form submit we need to ensure that the model bound hidden input variable in the form ('connectionId') is populated. We need the connection id so the server knows who to inform about the progress of the long-running operation.             
-
-The connection Id value can be retrieved from connection.connection.connectionId (hubConnection.httpConnection.connectionId).             
-
-Just to show that we can also send messages from a JavaScript client ReportProgress is called from here to set '10% complete'. This is the only time that the Hub's actual ReportProgress method is executed. The message goes through a socket from the page to the hub (on the server) and then back to the same page.             
-
-```javascript
-        function getConnectionIdAndReportStart() {
-            $('#connectionId').val(connection.connection.connectionId);
-            var info = { message: 'Starting Out', pct: 10 };
-            connection.invoke('reportprogress', info);
         }
 ```
 
 ### In the Page code-behind
 
-We are allowed to call it code-behind aren't we?             
-
-The Page Model's constructor takes an IHubContext. AspNetCore2 injects a reference to the                ProgressHub instance for us. Now we can make calls to the hub from here! On POST the                ConnectionId of the caller is bound from a hidden input on the page, so we are all ready to go.             
-
-In the server-side code we can now do lots of different work while reporting to the client what we are doing and how it's going via SignalR. Here I am just updating a ProgressBar, in my actual app (**Unearth**) I do all kinds of things like parsing and analysing natural language, executing several searches on different repositories and passing the results back to the client as I go.             
-
-This is all done with `_progressHubContext.Clients.Client(connectionId).ReportProgress(info);` This uses the hub, but doesn't actually execute the Hub's ReportProgress method.             
-
-When our long-running method is finished a 'Reset' message is sent to the client which will cause it to                reset it's state ready for the next call.   
+Nothing to see here. No binding. No POST. Only a GET.
 
 ```c#
-public class IndexModel : PageModel
-{
-    IHubContext<ProgressHub, IProgressHub> _progressHubContext;
-    public IndexModel(IHubContext<ProgressHub, IProgressHub> progressHubContext)
+(NoPost.cshtml)
+	public class NoPostModel : PageModel
     {
-        _progressHubContext = progressHubContext;
+        public string Message { get; set; }
+
+        public void OnGet()
+        {
+            Message = "Click the Progress button to see some async progress reporting - No Form, No POST, just SignalR";
+        }
     }
-
-    [BindProperty]
-    public string ConnectionId { get; set; }
-
-    ...
-
-    public void OnPost()
-    {
-        // 10% report is done in js code...
-        Thread.Sleep(1000);
-        ReportAndSleep("Relaxing Splines", 20, ConnectionId, 1000);
-        ...
-        ReportAndSleep("Reset", 0, ConnectionId, 0);
-    }
-
-    private void ReportAndSleep(string message, int pct, string connectionId, int sleepFor)
-    {
-        var info = new ProgressInfo() { message = message, pct = pct };
-        _progressHubContext.Clients.Client(connectionId).ReportProgress(info);
-        Thread.Sleep(sleepFor);
-    }
-}
 ```
 
-You might wonder why the server-side method signature is `public void OnPost()`  rather than `public async Task OnPostAsync()`. It could be  either. The client-side call is asynchronous but the server-side code can be synchronous if you like. The page isn't waiting for us (but the Progress/Submit button there is disabled after the first message is received).             
+### In the Hub and Helper
 
-For a simple progress bar example synchronous code on the server makes sense - but the ability for the server to send messages back to the page allows us to imagine much more complex scenarios. If the server-side method is asynchronous we can launch any number of independent operations, passing the hub reference and client connection id and updating our UI from within those operations when they are complete.
+When the hub's StartLongRunningProcessAsync method is called (because of the message from the client) it calls a helper method passing the a hub reference that contains the context of this call.
+
+```c#
+(NoPostHub.cs)
+	public async Task StartLongRunningProcessAsync()
+    {
+    	await ProgressHelper.SomeLongRunningTask(this);
+    }
+```
+
+The actual long running task is executed, reporting back the page periodically. When finished it sends a reset message to the client/page.
+
+```C#
+(ProgressHelper.cs)
+    public class ProgressHelper
+    {
+        public static async Task SomeLongRunningTask(NoPostHub noPostHub)
+        {
+            ReportAndSleep(noPostHub, "Starting Out", 10, 1000);
+            ...
+
+            // Tell the js code to reset
+            ReportAndSleep(noPostHub, "Reset", 0, 0);
+        }
+
+        private static void ReportAndSleep(NoPostHub noPostHub, string message, int pct, int sleepFor)
+        {
+            var info = new ProgressInfo() { message = message, pct = pct };
+            noPostHub.Clients.Client(noPostHub.Context.ConnectionId).ReportProgress(info);
+            Thread.Sleep(sleepFor);
+        }
+    }
+```
+
+In the real world we would define extra message types. The reset should not really be a special case of ReportProgress - it should be a special 

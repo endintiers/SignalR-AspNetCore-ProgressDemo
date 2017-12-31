@@ -9,7 +9,7 @@
         <div class="col-lg-2 col-md-2 col-sm-2">
             <button id="progressButton" class="btn btn-primary"
                     data-loading-text="<i class='fa fa-spinner fa-spin'></i>&nbsp;Working..."
-                    onclick="reportAndStart();">
+                    onclick="startLongRunningProcess();">
                 Progress
             </button>
         </div>
@@ -20,6 +20,12 @@
             </div>
         </div>
 
+    </div>
+
+    <div id="parameters-row" class="row" style="padding-top: 8px">
+        <div class="col-lg-12 col-sm-12">
+            <input id="throwExCheckBox" type="checkbox"/>&nbsp;Throw exception on server
+        </div>
     </div>
 
     <div id="msg-row" class="row" style="padding-top: 8px">
@@ -33,32 +39,32 @@
 @section scripts {
     <script>
         var connection;
-        var progressTimeout;
 
         $('document').ready(function () {
             connection = new signalR.HubConnection('/nopo');
             connection.on('reportprogress', info => {
                 console.log(info.message + ' - ' + info.pct + '%');
-                reportProgress(info);
+                $('#pbar').css('width', info.pct + '%')
+                    .attr('aria-valuenow', info.pct).text(info.message);
+            });
+            connection.on('processcompleted', info => {
+                console.log('Process Completed - ' + info.message);
+                $('#msg').html('Process Completed - ' + info.message);
+                resetUI();
+            });
+            connection.on('somethingwentwrong', message => {
+                console.log(message);
+                $('#msg').html('<span class="text-danger">' + message + '</span>');
+                resetUI();
             });
             connection.start();
         });
 
-        function reportProgress(info) {
-            if (info.message.toLowerCase() == 'reset') {
-                clearTimeout(progressTimeout);
-                resetUI();
-            }
-            else {
-                $('#pbar').css('width', info.pct + '%')
-                    .attr('aria-valuenow', info.pct).text(info.message);
-            }
-        }
-
-        function reportAndStart() {
+        function startLongRunningProcess() {
             $('#progressButton').button('loading');
-            progressTimeout = setTimeout(resetUI, 30000);
-            connection.invoke('startlongrunningprocessasync');
+            $('#msg').html('');
+            var throwEx = $('#throwExCheckBox').prop('checked');
+            connection.invoke('startlongrunningprocessasync', { ThrowEx: throwEx, SomeOtherStuff: "blah"} );
         }
 
         function resetUI() {
