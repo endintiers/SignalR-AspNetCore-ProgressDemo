@@ -102,7 +102,7 @@ On document ready (called only once - after the initial GET) a connection to the
         });
 ```
 
-When the Progress button is clicked, it calls the **startLongRunningProcess** function which sets the state of the Progress to loading (so it can't be clicked again) then calls the server's ProgressHelper.SomeLongRunningTask method via the hub passing in any parameters we need. We don't have to retrieve or pass the connection Id because the hub already knows which client is making this call. 
+When the Progress button is clicked, it calls the **startLongRunningProcess** function which sets the state of the Progress button to loading (so it can't be clicked again) then calls the server's ProgressHelper.SomeLongRunningTask method via the hub passing in any parameters we need. We don't have to retrieve or pass the connection Id because the hub already knows which client is making this call. 
 
 **resetUI** just resets the UI state - called after a processcompleted or somethingwentwrong message is received from the server.
 
